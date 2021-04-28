@@ -47,10 +47,21 @@
         const query = new Moralis.Query("EthTransactions");
         query.equalTo("from_address", user.get("ethAddress"));
 
+        // subscribe to query updates ** add this**
+        const subscription = await query.subscribe();
+        handleNewTransaction(subscription);
+
         // run query
         const results = await query.find();
         console.log("user transactions:", results);
-      }
+        }
+
+        async function handleNewTransaction(subscription) {
+        // log each new transaction
+        subscription.on("create", function(data) {
+            console.log("new transaction: ", data);
+        });
+}
 
       //get stats on page load
       getStats();

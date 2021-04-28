@@ -5,20 +5,21 @@
     <script src="https://unpkg.com/moralis/dist/moralis.js"></script>
   </head>
   <body>
-    <h1>Gas Stats With Moralis</h1>
+    <h1>Moralis Gas Stats</h1>
 
     <button id="btn-login">Moralis Login</button>
     <button id="btn-logout">Logout</button>
     <button id="btn-get-stats">Refresh Stats</button>
+
+    <!-- stats will go here -->
     <ul id="gas-stats"></ul>
-
-
 
     <script>
       // connect to Moralis server
       Moralis.initialize("I2ICsHVRy7j12MtqTa2hQaFy5KZFGFIiTajlLJVK");
       Moralis.serverURL = "https://jwagjlixvark.moralis.io:2053/server";
-  
+
+      // LOG IN WITH METAMASK
       async function login() {
         let user = Moralis.User.current();
         if (!user) {
@@ -28,6 +29,7 @@
         getStats();
       }
 
+      // LOG OUT
       async function logOut() {
         await Moralis.User.logOut();
         console.log("logged out");
@@ -38,36 +40,56 @@
       document.getElementById("btn-logout").onclick = logOut;
       document.getElementById("btn-get-stats").onclick = getStats;
 
+      // refresh stats
       function getStats() {
         const user = Moralis.User.current();
         if (user) {
           getUserTransactions(user);
         }
+        getAverageGasPrices();
       }
 
+      // HISTORICAL TRANSACTIONS
       async function getUserTransactions(user) {
         // create query
         const query = new Moralis.Query("EthTransactions");
         query.equalTo("from_address", user.get("ethAddress"));
 
-        // subscribe to query updates ** add this**
+        // subscribe to query updates
         const subscription = await query.subscribe();
         handleNewTransaction(subscription);
 
         // run query
         const results = await query.find();
         console.log("user transactions:", results);
-        }
+      }
 
-        async function handleNewTransaction(subscription) {
+      // REAL-TIME TRANSACTIONS
+      async function handleNewTransaction(subscription) {
         // log each new transaction
-        subscription.on("create", function(data) {
-            console.log("new transaction: ", data);
+        subscription.on("create", function (data) {
+          console.log("new transaction: ", data);
         });
-}
+      }
+
+      // CLOUD FUNCTION
+      async function getAverageGasPrices() {
+        const results = await Moralis.Cloud.run("getAvgGas");
+        console.log("average user gas prices:", results);
+        renderGasStats(results);
+      }
+
+      function renderGasStats(data) {
+        const container = document.getElementById("gas-stats");
+        container.innerHTML = data
+          .map(function (row, rank) {
+            return `<ul>#${rank + 1}: ${Math.round(row.avgGas)} gwei</ul>`;
+          })
+          .join("");
+      }
 
       //get stats on page load
       getStats();
-      </script>
+    </script>
   </body>
 </html>
